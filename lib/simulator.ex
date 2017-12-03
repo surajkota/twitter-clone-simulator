@@ -22,7 +22,7 @@ defmodule Simulator do
 
   def process(args) do
     if length(args) != 2 do
-      IO.puts "Run as ./simulator num_of_users <server-ip-address> <simulator-ip-address>"
+      IO.puts "Run as ./simulator num_of_users <select user for display>"
     else
       _ = System.cmd("epmd", ['-daemon'])
       #Node.start(String.to_atom("client@" <> Enum.at(args, 2)))
@@ -36,8 +36,10 @@ defmodule Simulator do
       mEng = :global.whereis_name(:mentionsEngine)
       rcdEng = :global.whereis_name(:rcdEngine)
       userEng = :global.whereis_name(:userEngine)
+      #IO.puts "*****" <> inspect(hEng) <> inspect(mEng) <> inspect(rcdEng) <> inspect(userEng)
       {numUsers, ""} = Integer.parse(Enum.at(args, 0))
-      userPidList = loop(rcdEng, userEng, hEng, mEng, numUsers, numUsers, [])
+      {selUser, ""} = Integer.parse(Enum.at(args, 1))
+      userPidList = loop(rcdEng, userEng, hEng, mEng, numUsers, numUsers, [], selUser)
       IO.puts "Starting simulation . . ."
       startloop2(userPidList)
       send userEng, :record
@@ -45,14 +47,14 @@ defmodule Simulator do
     end
   end 
 
-  def loop(rcdEng, userEng, hEng, mEng, numUsers, number2, clientList) do
+  def loop(rcdEng, userEng, hEng, mEng, numUsers, number2, clientList, selUser) do
       if number2 != 0 do
-        IO.puts "number2 is" <> inspect(number2) <> " " <> inspect(numUsers)
-          {:ok, pidClient} = Client.start_link(numUsers, number2, []) 
-          IO.puts "pidC: " <> inspect(pidClient)
+        #IO.puts "number2 is" <> inspect(number2) <> " " <> inspect(numUsers)
+          {:ok, pidClient} = Client.start_link(rcdEng, userEng, hEng, mEng, numUsers, number2, [], selUser) 
+          #IO.puts "pidC: " <> inspect(pidClient)
           GenServer.call pidClient, :register
           clientList = [pidClient | clientList]
-          loop(rcdEng, userEng, hEng, mEng, numUsers, (number2 - 1), clientList)
+          loop(rcdEng, userEng, hEng, mEng, numUsers, (number2 - 1), clientList, selUser)
         else
           clientList
       end
