@@ -52,6 +52,7 @@ defmodule Client do
 
     def concatUsers([tag | tList], utag) do
         utag = utag <> " @"<> Integer.to_string(tag)
+        concatUsers(tList, utag)
     end
 
     def concatUsers([], utag) do
@@ -172,6 +173,9 @@ defmodule Client do
     def handle_info(msg, [rcdEng, userEng, hEng, mEng, nUsers ,uId, fList, selUser]) do
         cond do
             msg == 0 ->
+                if selUser == 0 || selUser == uId do
+                    IO.puts "login: " <> inspect(uId)
+                end
                 GenServer.cast rcdEng, {:login, uId, self()}
                 Process.send_after(self(), 1, 0)
             msg == 1 ->
@@ -179,21 +183,24 @@ defmodule Client do
                 << i1 :: unsigned-integer-32, i2 :: unsigned-integer-32, i3 :: unsigned-integer-32>> = :crypto.strong_rand_bytes(12)
                 :rand.seed(:exsplus, {i1, i2, i3})
                 hprob = :rand.uniform()
-                if hprob >0.85 && rem(uId, 2) == 0 do
+                if hprob >0.85 do
                     GenServer.cast self(), :hSearch
                 end
                 << i1 :: unsigned-integer-32, i2 :: unsigned-integer-32, i3 :: unsigned-integer-32>> = :crypto.strong_rand_bytes(12)
                 :rand.seed(:exsplus, {i1, i2, i3})
                 :rand.uniform()
-                if hprob >0.85 && rem(uId, 2) == 1 do
+                if hprob >0.85 do
                     GenServer.cast self(), :mSearch
                 end
                 << i1 :: unsigned-integer-32, i2 :: unsigned-integer-32, i3 :: unsigned-integer-32>> = :crypto.strong_rand_bytes(12)
                 :rand.seed(:exsplus, {i1, i2, i3})
                 hprob = :rand.uniform()
-                if hprob >0.98 do
+                if hprob >0.7 do
+                    if selUser == 0 || selUser == uId do
+                        IO.puts "logout: " <> inspect(uId)
+                    end
                     GenServer.cast rcdEng, {:logout, uId}
-                    Process.send_after(self(), 0, :rand.uniform(1000))
+                    Process.send_after(self(), 0, :rand.uniform(10000))
                 end
         end
         {:noreply, [rcdEng, userEng, hEng, mEng, nUsers ,uId, fList, selUser]}
